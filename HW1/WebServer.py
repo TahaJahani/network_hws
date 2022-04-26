@@ -27,6 +27,7 @@ def accept_clients():
         client, address = client_server.accept()
         Logger.log(f"Client {address} accepted")
         clients.append(client)
+        connect_clients_to_servers()
 
 
 def accept_game_servers():
@@ -37,11 +38,23 @@ def accept_game_servers():
     while True:
         game_server, address = game_server.accept()
         Logger.log(f"Game Server {address} accepted")
+        free_game_servers.append(game_server)
+        connect_clients_to_servers()
 
 
 def connect_clients_to_servers():
     # todo: check for waiting clients and free servers
     pass
 
+def get_input():
+    # todo: get user input from console
+    input_command = input()
+    pass
 
-accept_clients()
+client_accept_thread = threading.Thread(target=accept_clients)
+game_server_accept_thread = threading.Thread(target=accept_game_servers)
+web_server_thread = threading.Thread(target=get_input)
+
+client_accept_thread.start()
+game_server_accept_thread.start()
+web_server_thread.start()
