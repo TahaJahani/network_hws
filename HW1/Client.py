@@ -1,4 +1,3 @@
-from os import stat
 import re
 import socket
 import threading
@@ -6,9 +5,12 @@ import threading
 from Logger import Logger
 from SocketMessage import SocketMessage
 
+
 class State:
     waiting = "WAITING"
     playing = "PLAYING"
+    finished = "FINISHED"
+
 
 host = '127.0.0.1'
 port = 8000
@@ -17,24 +19,32 @@ state = State.waiting
 
 
 def read_from_server():
+    global state
     while True:
         data = server.recv(1024).decode('ascii')
         data = SocketMessage.from_text(data)
         if (data.is_valid):
-            process_message(data.message)
+            print(data.message)
         if (data.message == 'server_disconnected'):
             Logger.log("Server disconnected, waiting for new game server")
             break
-
-
-def process_message(message):
-    print(message)
+        if data.message.endswith('won the game!'):
+            state = State.finished
+            server.close()
+            break
 
 
 def start_game():
+    global state
     state = State.playing
-    reading_thread = threading.Thread(target=read_from_server)
-    reading_thread.start()
+    input_thread = threading.Thread(target=get_input)
+    input_thread.setDaemon(True)
+    input_thread.start()
+    read_from_server()
+    exit(0)
+
+
+def get_input():
     while True:
         command = input()
         process_command(command)
@@ -65,5 +75,3 @@ while True:
     if (data.is_valid and data.message == 'server_connected'):
         Logger.log("Game started")
         start_game()
-
-# check for game server disconnected

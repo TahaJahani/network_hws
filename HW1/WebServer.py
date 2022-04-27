@@ -41,8 +41,20 @@ def write_to_client(client: socket.socket, server: socket.socket):
                 break
             sleep(0.1)
             client.send(data)
+            data = SocketMessage.from_text(data)
+            if (data.is_valid and data.message.endswith('won the game!')):
+                handle_game_finished(client, server)
+                break
     except:
         handle_client_disconnected(client, server)
+
+
+def handle_game_finished(client: socket.socket, server: socket.socket):
+    if (client in clients):
+        clients.remove(client)
+    free_game_servers.put(server)
+    Logger.log(f"Game in server {server.getpeername()} finished")
+    check_for_free_clients_or_servers()
 
 
 def handle_game_server_disconnected(client: socket.socket, server: socket.socket):
@@ -65,6 +77,7 @@ def handle_client_disconnected(client: socket.socket, server: socket.socket):
     except:
         pass
     Logger.log(f"Client {client.getsockname()} disconnected")
+    check_for_free_clients_or_servers()
 
 
 def accept_clients():

@@ -13,7 +13,7 @@ class SocketMessage:
             obj.is_valid = True
         except:
             obj.is_valid = False
-            obj.message = "BAD DATA"
+            obj.message = "Bad data from server is sent"
         return obj
 
     @classmethod

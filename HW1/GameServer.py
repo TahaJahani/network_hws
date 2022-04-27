@@ -23,8 +23,8 @@ class State:
         ["_", "_", "_"],
         ["_", "_", "_"],
     ]
-    player = "O"
-    computer = "X"
+    player = "X"
+    computer = "O"
     winner = None
 
     def __init__(self, player):
@@ -38,6 +38,13 @@ class State:
                 if self.board[i][j] != '_':
                     count += 1
         return count
+
+    def reset_board(self):
+        self.board = [
+            ["_", "_", "_"],
+            ["_", "_", "_"],
+            ["_", "_", "_"],
+        ]
 
 
 host = '127.0.0.1'
@@ -90,7 +97,8 @@ def handle_user_connected(socket_message: SocketMessage):
 
 
 def handle_play_turn(socket_message: SocketMessage):
-    type, message = play_client(int(socket_message.data['x']), int(socket_message.data['y']))
+    type, message = play_client(
+        int(socket_message.data['x']), int(socket_message.data['y']))
     resp = SocketMessage.from_message(type, message)
     server.send(resp.stringify())
     Logger.log("One turn played")
@@ -116,13 +124,13 @@ def play_client(x, y):
     state.board[x][y] = state.player
     if (is_game_finished()):
         state.status = Status.FINISHED
+        state.reset_board()
         return "Message", f"{state.winner} won the game!"
-        # TODO: send a message to server to be added to free list
     play_computer()
     if (is_game_finished()):
         state.status = Status.FINISHED
+        state.reset_board()
         return "Message", f"{state.winner} won the game!\n{get_board()}"
-        # TODO: send a message to server to be added to free list
     return "Message", get_board()
 
 
