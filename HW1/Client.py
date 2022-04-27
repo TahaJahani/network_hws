@@ -1,3 +1,5 @@
+from ast import arg
+import os
 import re
 import socket
 import threading
@@ -22,10 +24,13 @@ def read_from_server():
     global state
     while True:
         data = server.recv(1024).decode('ascii')
+        if (data == b''):
+            break
         data = SocketMessage.from_text(data)
         if (data.is_valid):
             print(data.message)
         if (data.message == 'server_disconnected'):
+            state = State.waiting
             Logger.log("Server disconnected, waiting for new game server")
             break
         if data.message.endswith('won the game!'):
@@ -37,11 +42,7 @@ def read_from_server():
 def start_game():
     global state
     state = State.playing
-    input_thread = threading.Thread(target=get_input)
-    input_thread.setDaemon(True)
-    input_thread.start()
     read_from_server()
-    exit(0)
 
 
 def get_input():
@@ -51,22 +52,30 @@ def get_input():
 
 
 def process_command(command):
+    global state
     if (state == State.waiting):
         print("Not connected to a server yet")
         return
-    location = re.search("play (\d{1}) (\d{1})", command)
+    location = re.search("/play (\d{1}) (\d{1})", command)
     if (location != None):
         x, y = location.group(1), location.group(2)
         data = SocketMessage.from_data("play_turn", {"x": x, "y": y})
         server.send(data.stringify())
-    elif(command == "exit"):
-        pass
+    elif(command == "/exit"):
+        server.sendall(SocketMessage.from_message("Message", "exit").stringify())
+        server.close()
+        state = State.finished
+        os._exit(0)
     else:
         print("Invalid command")
 
 
 server.connect((host, port))
 Logger.log("Connected Successfully")
+
+get_input_thread = threading.Thread(target=get_input)
+get_input_thread.setDaemon(True)
+get_input_thread.start()
 
 while True:
     data = server.recv(1024).decode('ascii')

@@ -23,11 +23,12 @@ def read_from_client(client: socket.socket, server: socket.socket):
     try:
         while True:
             data = client.recv(1024)
-            if (data == b''):
+            message = SocketMessage.from_text(data)
+            if (data == b'' or message.message == 'exit'):
                 handle_client_disconnected(client, server)
                 break
             sleep(0.1)
-            server.send(data)
+            server.sendall(data)
     except:
         handle_game_server_disconnected(client, server)
 
@@ -40,7 +41,7 @@ def write_to_client(client: socket.socket, server: socket.socket):
                 handle_game_server_disconnected(client, server)
                 break
             sleep(0.1)
-            client.send(data)
+            client.sendall(data)
             data = SocketMessage.from_text(data)
             if (data.is_valid and data.message.endswith('won the game!')):
                 handle_game_finished(client, server)
@@ -59,7 +60,7 @@ def handle_game_finished(client: socket.socket, server: socket.socket):
 
 def handle_game_server_disconnected(client: socket.socket, server: socket.socket):
     try:
-        client.send(SocketMessage.from_message(
+        client.sendall(SocketMessage.from_message(
             "Message", "server_disconnected").stringify())
         waiting_clients.put(client)
     except:
@@ -71,7 +72,7 @@ def handle_client_disconnected(client: socket.socket, server: socket.socket):
     if (client in clients):
         clients.remove(client)
     try:
-        server.send(SocketMessage.from_message(
+        server.sendall(SocketMessage.from_message(
             "Message", "user_disconnected").stringify())
         free_game_servers.put(server)
     except:
@@ -111,9 +112,6 @@ def check_for_free_clients_or_servers():
     client = waiting_clients.get()
     game_server = free_game_servers.get()
     Logger.log("Trying to match a server to client...")
-    # server_client_map.set_val(game_server, client)
-    # so we can get client from server and server from client
-    # server_client_map.set_val(client, game_server)
     server_and_client_connected(client, game_server)
 
 
@@ -124,9 +122,9 @@ def server_and_client_connected(client: socket.socket, game_server: socket.socke
     except:
         pass
 
-    client.send(SocketMessage.from_message(
+    client.sendall(SocketMessage.from_message(
         "Message", "server_connected").stringify())
-    game_server.send(SocketMessage.from_message(
+    game_server.sendall(SocketMessage.from_message(
         "Message", "user_connected").stringify())  # TODO: player can choose his type
 
     client_to_server_thread = threading.Thread(
@@ -138,9 +136,10 @@ def server_and_client_connected(client: socket.socket, game_server: socket.socke
 
 
 def get_input():
-    # todo: get user input from console
-    input_command = input()
-    pass
+    while True:
+        input_command = input()
+        if (input_command == "/users"):
+            print(f"Number of connected users: {len(clients)}")
 
 
 client_accept_thread = threading.Thread(target=accept_clients)

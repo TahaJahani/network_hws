@@ -71,7 +71,8 @@ def get_command():
 
 def handle_user_disconnected(socket_message):
     global state
-    state = State("O")
+    state = State("X")
+    state.reset_board()
     Logger.log("User exited the game, waiting for new user to connect")
     return
 
@@ -107,6 +108,7 @@ def handle_play_turn(socket_message: SocketMessage):
 def start_game(player):
     global state
     state = State(player)
+    state.reset_board()
     state.status = Status.PLAYING
     if (player == 'O'):
         play_computer()

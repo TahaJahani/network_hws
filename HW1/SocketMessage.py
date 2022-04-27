@@ -12,6 +12,7 @@ class SocketMessage:
             obj.data = data['data']
             obj.is_valid = True
         except:
+            # print(text)
             obj.is_valid = False
             obj.message = "Bad data from server is sent"
         return obj
