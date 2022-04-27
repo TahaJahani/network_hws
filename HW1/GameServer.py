@@ -90,7 +90,10 @@ def handle_user_connected(socket_message: SocketMessage):
 
 
 def handle_play_turn(socket_message: SocketMessage):
-    pass
+    type, message = play_client(int(socket_message.data['x']), int(socket_message.data['y']))
+    resp = SocketMessage.from_message(type, message)
+    server.send(resp.stringify())
+    Logger.log("One turn played")
 
 
 def start_game(player):
@@ -103,7 +106,8 @@ def start_game(player):
 
 
 def play_client(x, y):
-    if (x > 3 or x < 1 or y > 3 or y < 1):
+    print(x, y)
+    if (x == None or y == None or x > 3 or x < 1 or y > 3 or y < 1):
         return "Error", "Invalid x or y provided"
     x = x - 1
     y = y - 1
@@ -150,11 +154,11 @@ def get_board():
 
 
 def play_computer():
-    random_x = random.randint(0, 3)
-    random_y = random.randint(0, 3)
+    random_x = random.randint(0, 2)
+    random_y = random.randint(0, 2)
     while state.board[random_x][random_y] != '_':
-        random_x = random.randint(0, 3)
-        random_y = random.randint(0, 3)
+        random_x = random.randint(0, 2)
+        random_y = random.randint(0, 2)
     state.board[random_x][random_y] = state.computer
 
 

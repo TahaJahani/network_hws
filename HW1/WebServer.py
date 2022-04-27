@@ -1,8 +1,8 @@
-from ast import arg
-from pydoc import cli
+from calendar import day_abbr
 import socket
 import threading
 from queue import Queue
+from time import sleep
 
 from HashTable import HashTable
 from Logger import Logger
@@ -23,24 +23,48 @@ def read_from_client(client: socket.socket, server: socket.socket):
     try:
         while True:
             data = client.recv(1024)
+            if (data == b''):
+                handle_client_disconnected(client, server)
+                break
+            sleep(0.1)
             server.send(data)
     except:
-        clients.remove(client)
-        server.send(SocketMessage.from_message("Message", "user_disconnected"))
-        free_game_servers.put(server)
-        Logger.log(f"Client {client.getpeername()} disconnected")
+        handle_game_server_disconnected(client, server)
 
 
 def write_to_client(client: socket.socket, server: socket.socket):
     try:
         while True:
             data = server.recv(1024)
+            if (data == b''):
+                handle_game_server_disconnected(client, server)
+                break
+            sleep(0.1)
             client.send(data)
     except:
-        waiting_clients.put(client)
-        # TODO: send a message to client to tell him to wait
-        Logger.log(f"Game server {server.getpeername()} disconnected")
+        handle_client_disconnected(client, server)
 
+
+def handle_game_server_disconnected(client: socket.socket, server: socket.socket):
+    try:
+        client.send(SocketMessage.from_message(
+            "Message", "server_disconnected").stringify())
+        waiting_clients.put(client)
+    except:
+        pass
+    Logger.log(f"Game server {server.getsockname()} disconnected")
+
+
+def handle_client_disconnected(client: socket.socket, server: socket.socket):
+    if (client in clients):
+        clients.remove(client)
+    try:
+        server.send(SocketMessage.from_message(
+            "Message", "user_disconnected").stringify())
+        free_game_servers.put(server)
+    except:
+        pass
+    Logger.log(f"Client {client.getsockname()} disconnected")
 
 
 def accept_clients():
@@ -73,6 +97,7 @@ def check_for_free_clients_or_servers():
         return
     client = waiting_clients.get()
     game_server = free_game_servers.get()
+    Logger.log("Trying to match a server to client...")
     # server_client_map.set_val(game_server, client)
     # so we can get client from server and server from client
     # server_client_map.set_val(client, game_server)
@@ -80,8 +105,16 @@ def check_for_free_clients_or_servers():
 
 
 def server_and_client_connected(client: socket.socket, game_server: socket.socket):
-    client.send(SocketMessage.from_message("Message", "server_connected").stringify())
-    game_server.send(SocketMessage.from_message("Message", "user_connected").stringify()) #TODO: player can choose his type
+    try:
+        Logger.log(
+            f"Client {client.getpeername()} connected to server {game_server.getpeername()}")
+    except:
+        pass
+
+    client.send(SocketMessage.from_message(
+        "Message", "server_connected").stringify())
+    game_server.send(SocketMessage.from_message(
+        "Message", "user_connected").stringify())  # TODO: player can choose his type
 
     client_to_server_thread = threading.Thread(
         target=read_from_client, args=(client, game_server, ))
@@ -89,7 +122,6 @@ def server_and_client_connected(client: socket.socket, game_server: socket.socke
         target=write_to_client, args=(client, game_server, ))
     client_to_server_thread.start()
     server_to_client_thread.start()
-    Logger.log(f"Client {client.getpeername()} connected to server {game_server.getpeername()}")
 
 
 def get_input():
