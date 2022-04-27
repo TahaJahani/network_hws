@@ -11,3 +11,4 @@ Logger.log("Connected Successfully")
 data = server.recv(1024)
 Logger.log(data)
 # Should wait until a confirm message from WebServer is received. then we create two threads for read and write
+# check for game server disconnected

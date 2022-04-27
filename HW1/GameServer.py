@@ -54,10 +54,19 @@ def get_command():
         if (not data.is_valid):
             handle_invalid_request(data)
             continue
-        if (data.message == 'user_connected'):
+        if (data.message == 'user_disconnected'):
+            handle_user_disconnected(data)
+        elif (data.message == 'user_connected'):
             handle_user_connected(data)
         elif(data.message == 'play_turn'):
             handle_play_turn(data)
+
+
+def handle_user_disconnected(socket_message):
+    global state
+    state = State("O")
+    Logger.log("User exited the game, waiting for new user to connect")
+    return
 
 
 def handle_invalid_request(socket_message):
@@ -67,7 +76,8 @@ def handle_invalid_request(socket_message):
 
 def handle_user_connected(socket_message: SocketMessage):
     if (state.status != Status.WAITING):
-        resp = SocketMessage.from_message("Error", "Already connected to a user")
+        resp = SocketMessage.from_message(
+            "Error", "Already connected to a user")
         server.send(resp.stringify())
         return
     player = "X"
@@ -77,6 +87,7 @@ def handle_user_connected(socket_message: SocketMessage):
     resp = SocketMessage.from_message(type, message)
     server.send(resp.stringify())
     Logger.log("User connected")
+
 
 def handle_play_turn(socket_message: SocketMessage):
     pass
@@ -145,7 +156,6 @@ def play_computer():
         random_x = random.randint(0, 3)
         random_y = random.randint(0, 3)
     state.board[random_x][random_y] = state.computer
-
 
 
 server.connect((host, port))

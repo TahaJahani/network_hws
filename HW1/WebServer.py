@@ -1,4 +1,5 @@
 from ast import arg
+from pydoc import cli
 import socket
 import threading
 from queue import Queue
@@ -15,15 +16,31 @@ servers_port = 3000
 clients = []
 waiting_clients = Queue()
 free_game_servers = Queue()
-server_client_map = HashTable(50)
+# server_client_map = HashTable(50)
 
 
 def read_from_client(client: socket.socket, server: socket.socket):
-    pass
+    try:
+        while True:
+            data = client.recv(1024)
+            server.send(data)
+    except:
+        clients.remove(client)
+        server.send(SocketMessage.from_message("Message", "user_disconnected"))
+        free_game_servers.put(server)
+        Logger.log(f"Client {client.getpeername()} disconnected")
 
 
 def write_to_client(client: socket.socket, server: socket.socket):
-    pass
+    try:
+        while True:
+            data = server.recv(1024)
+            client.send(data)
+    except:
+        waiting_clients.put(client)
+        # TODO: send a message to client to tell him to wait
+        Logger.log(f"Game server {server.getpeername()} disconnected")
+
 
 
 def accept_clients():
@@ -56,9 +73,9 @@ def check_for_free_clients_or_servers():
         return
     client = waiting_clients.get()
     game_server = free_game_servers.get()
-    server_client_map.set_val(game_server, client)
+    # server_client_map.set_val(game_server, client)
     # so we can get client from server and server from client
-    server_client_map.set_val(client, game_server)
+    # server_client_map.set_val(client, game_server)
     server_and_client_connected(client, game_server)
 
 
@@ -72,7 +89,7 @@ def server_and_client_connected(client: socket.socket, game_server: socket.socke
         target=write_to_client, args=(client, game_server, ))
     client_to_server_thread.start()
     server_to_client_thread.start()
-    Logger.log(f"client {client.getpeername()} connected to server {game_server.getpeername()}")
+    Logger.log(f"Client {client.getpeername()} connected to server {game_server.getpeername()}")
 
 
 def get_input():
